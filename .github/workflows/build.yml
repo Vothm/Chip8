@@ -1,8 +1,9 @@
-name: Cross-Platform Build
+name: Cross-Platform Build & Release
 
 on:
   push:
     branches: [ "main", "master" ]
+    tags: [ 'v*' ] # Triggers release logic when a tag is pushed
   pull_request:
     branches: [ "main", "master" ]
 
@@ -14,36 +15,61 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { name: "Windows-Latest", os: windows-latest }
-          - { name: "Ubuntu-Latest",  os: ubuntu-latest }
+          - { name: "Windows-Latest", os: windows-latest, artifact: "Chip8-Windows.exe" }
+          - { name: "Ubuntu-Latest",  os: ubuntu-latest,  artifact: "Chip8-Linux" }
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Linux needs specific system headers to build SDL3 from source
+      # 1. Fix Linux dependencies (added libxtst-dev for XTEST)
       - name: Install Linux Dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libasound2-dev libpulse-dev libaudio-dev \
             libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
-            libxinerama-dev libxkbcommon-dev libxss-dev libgl1-mesa-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev \
-            libxtst-dev
+            libxinerama-dev libxkbcommon-dev libxss-dev libgl1-mesa-dev libxtst-dev
 
-      # Ninja is pre-installed on GitHub runners, so we can go straight to Configure
       - name: Configure CMake
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
       - name: Build Project
         run: cmake --build build --config Release
 
+      - name: Rename Binary
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            mv build/Chip8.exe ./${{ matrix.config.artifact }}
+          else
+            mv build/Chip8 ./${{ matrix.config.artifact }}
+          fi
+
+      # 3. Upload specifically named artifact
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Chip8-${{ matrix.config.name }}
-          # Path covers Linux binary and Windows .exe (including subfolders)
-          path: |
-            build/Chip8
-            build/Chip8.exe
-            build/Release/Chip8.exe
+          name: ${{ matrix.config.artifact }}
+          path: ${{ matrix.config.artifact }}
+
+  publish:
+    name: Create GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/') # Only run if this is a tag push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true # Flattens the folder structure for easier release
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-assets/Chip8-Windows.exe
+            release-assets/Chip8-Linux
