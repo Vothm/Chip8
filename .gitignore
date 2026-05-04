@@ -1,0 +1,10 @@
+build/
+cmake-build-debug/
+cmake-build-release/
+.cache/
+.idea/
+.idea
+.iml
+.vscode/
+Chip8/.idea
+*.user
