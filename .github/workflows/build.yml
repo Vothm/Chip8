@@ -21,15 +21,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # Linux needs specific system headers to build SDL3 from source
       - name: Install Linux Dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build libasound2-dev libpulse-dev libaudio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxinerama-dev libxkbcommon-dev libxss-dev libgl1-mesa-dev
+          sudo apt-get install -y ninja-build libasound2-dev libpulse-dev libaudio-dev \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libxinerama-dev libxkbcommon-dev libxss-dev libgl1-mesa-dev
 
-      - name: Setup Ninja
-        uses: getsentry/action-setup-ninja@v1
-
+      # Ninja is pre-installed on GitHub runners, so we can go straight to Configure
       - name: Configure CMake
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
@@ -40,6 +41,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Chip8-${{ matrix.config.name }}
+          # Path covers Linux binary and Windows .exe (including subfolders)
           path: |
             build/Chip8
             build/Chip8.exe
