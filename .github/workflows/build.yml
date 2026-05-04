@@ -28,7 +28,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build libasound2-dev libpulse-dev libaudio-dev \
             libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
-            libxinerama-dev libxkbcommon-dev libxss-dev libgl1-mesa-dev
+            libxinerama-dev libxkbcommon-dev libxss-dev libgl1-mesa-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev \
+            libxtst-dev
 
       # Ninja is pre-installed on GitHub runners, so we can go straight to Configure
       - name: Configure CMake
